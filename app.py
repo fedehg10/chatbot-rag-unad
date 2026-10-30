@@ -66,7 +66,7 @@ if prompt := st.chat_input("Escribe tu duda técnica aquí..."):
         if retriever is None:
             response = "⚠️ Advertencia: No se encontró el archivo PDF de documentación en el entorno."
         else:
-            docs = retriever.get_relevant_documents(prompt)
+            docs = retriever.invoke(prompt)
             context = "\n\n".join([d.page_content for d in docs])
             if len(context.strip()) == 0:
                 response = "No dispongo de información suficiente en la documentación provista para responder esta pregunta."
