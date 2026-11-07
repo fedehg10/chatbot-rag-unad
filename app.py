@@ -8,7 +8,7 @@ from huggingface_hub import InferenceClient
 
 # --- 1. CONFIGURACIÓN CENTRALIZADA ---
 CONFIG = {
-    "model_name": "meta-llama/Llama-3.2-3B-Instruct",
+    "model_name": "google/gemma-2-2b-it",
     "temperature": 0.1,
     "max_tokens": 512,
     "retrieval_k": 3,
@@ -20,8 +20,8 @@ st.set_page_config(page_title="Asistente Técnico de Datos", page_icon="🤖", l
 
 # --- 3. INICIALIZACIÓN DEL SISTEMA RAG ---
 @st.cache_resource
-def init_rag_system_bulletproof():
-    # Cliente oficial directo y compatible con el proveedor de chat
+def init_rag_system_gemma():
+    # Cliente oficial directo con un modelo nativo soportado por la API gratuita
     client = InferenceClient(
         model=CONFIG["model_name"],
         token=st.secrets["HUGGINGFACEHUB_API_TOKEN"]
@@ -45,7 +45,7 @@ def init_rag_system_bulletproof():
 
 # Cargamos el sistema de forma segura
 try:
-    client, retriever = init_rag_system_bulletproof()
+    client, retriever = init_rag_system_gemma()
 except Exception as e:
     st.error(f"Error al inicializar el sistema RAG: {e}")
     client, retriever = None, None
@@ -90,7 +90,7 @@ if prompt:
                 else:
                     input_text = f"Utiliza exclusivamente el siguiente contexto técnico para responder a la pregunta de manera clara y profesional.\n\nContexto:\n{context}\n\nPregunta: {prompt}\nRespuesta:"
                     
-                    # Petición nativa de chat compatible con el enrutador
+                    # Petición nativa de chat compatible
                     completion = client.chat_completion(
                         messages=[{"role": "user", "content": input_text}],
                         max_tokens=CONFIG["max_tokens"],
