@@ -66,12 +66,18 @@ if prompt := st.chat_input("Escribe tu duda técnica aquí..."):
         if retriever is None:
             response = "⚠️ Advertencia: No se encontró el archivo PDF de documentación en el entorno."
         else:
-            docs = retriever.invoke(prompt)
-            context = "\n\n".join([d.page_content for d in docs])
-            if len(context.strip()) == 0:
-                response = "No dispongo de información suficiente en la documentación provista para responder esta pregunta."
-            else:
-                response = f"Basado en la documentación técnica analizada, aquí tienes la solución relacionada con tu consulta sobre: *{prompt}*."
+ docs = retriever.invoke(prompt)
+context = "\n\n".join([d.page_content for d in docs])
+
+if len(context.strip()) == 0:
+    response = "No dispongo de información suficiente en la documentación provista para responder esta pregunta."
+else:
+    # Creamos el prompt que une el contexto del PDF y la pregunta del usuario
+    input_text = f"Utiliza exclusivamente el siguiente contexto técnico para responder a la pregunta de manera clara y profesional.\n\nContexto:\n{context}\n\nPregunta: {prompt}\nRespuesta:"
+    
+    # Invocamos al modelo LLM (si es un ChatModel, usa .content; si es un LLM tradicional, devuelto como texto plano)
+    raw_response = llm.invoke(input_text)
+    response = raw_response.content if hasattr(raw_response, "content") else str(raw_response)
 
         st.markdown(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
