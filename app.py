@@ -86,7 +86,7 @@ if prompt:
                 response = "No dispongo de información suficiente en la documentación provista para responder esta pregunta."
             else:
                 input_text = f"Utiliza exclusivamente el siguiente contexto técnico para responder a la pregunta de manera clara y profesional.\n\nContexto:\n{context}\n\nPregunta: {prompt}\nRespuesta:"
-                raw_response = llm.invoke(input_text)
+                raw_response = llm.invoke({"inputs": input_text})
                 response = raw_response.content if hasattr(raw_response, "content") else str(raw_response)
 
         st.markdown(response)
