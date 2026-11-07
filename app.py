@@ -4,11 +4,11 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
+from langchain_huggingface import HuggingFaceEndpoint
 
 # --- 1. CONFIGURACIÓN CENTRALIZADA ---
 CONFIG = {
-    "model_name": "mistralai/Mistral-7B-Instruct-v0.2",
+    "model_name": "meta-llama/Llama-3.2-3B-Instruct",
     "temperature": 0.1,
     "max_tokens": 512,
     "retrieval_k": 3,
@@ -18,20 +18,16 @@ CONFIG = {
 # --- 2. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Asistente Técnico de Datos", page_icon="🤖", layout="centered")
 
-# --- 3. INICIALIZACIÓN DEL SISTEMA RAG (CON CACHÉ RENOVADA) ---
+# --- 3. INICIALIZACIÓN DEL SISTEMA RAG ---
 @st.cache_resource
-def init_rag_system_v5():
-    # Creamos el endpoint especificando task="conversational"
-    llm_endpoint = HuggingFaceEndpoint(
+def init_rag_system_final():
+    # Inicializamos el endpoint con un modelo moderno y totalmente soportado
+    llm = HuggingFaceEndpoint(
         repo_id=CONFIG["model_name"],
-        task="conversational",
         max_new_tokens=CONFIG["max_tokens"],
         temperature=CONFIG["temperature"],
         huggingfacehub_api_token=st.secrets["HUGGINGFACEHUB_API_TOKEN"]
     )
-    
-    # Envolvemos el endpoint con ChatHuggingFace para satisfacer el requisito del proveedor
-    llm = ChatHuggingFace(llm=llm_endpoint)
     
     # Carga y segmentación del documento PDF
     if os.path.exists(CONFIG["pdf_path"]):
@@ -51,7 +47,7 @@ def init_rag_system_v5():
 
 # Cargamos el sistema de forma segura
 try:
-    llm, retriever = init_rag_system_v5()
+    llm, retriever = init_rag_system_final()
 except Exception as e:
     st.error(f"Error al inicializar el sistema RAG: {e}")
     llm, retriever = None, None
