@@ -78,5 +78,5 @@ else:
     raw_response = llm.invoke(input_text)
     response = raw_response.content if hasattr(raw_response, "content") else str(raw_response)
 
-        st.markdown(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+st.markdown(response)
+st.session_state.messages.append({"role": "assistant", "content": response})
