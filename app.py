@@ -57,26 +57,25 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # --- LÓGICA DE INTERACCIÓN ---
-if prompt := st.chat_input("Escribe tu duda técnica aquí..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# Capturamos la entrada del usuario (ej. usando st.chat_input)
+prompt = st.chat_input("Escribe tu duda técnica aquí...")
+
+# Verificamos que el usuario haya escrito algo antes de procesar
+if prompt:
+    # Mostramos el mensaje del usuario en el chat
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Ahora sí ejecutamos la búsqueda y el LLM de forma segura
     with st.chat_message("assistant"):
-        if retriever is None:
-            response = "⚠️ Advertencia: No se encontró el archivo PDF de documentación en el entorno."
-       
-docs = retriever.invoke(prompt)
-context = "\n\n".join([d.page_content for d in docs])
+        docs = retriever.invoke(prompt)
+        context = "\n\n".join([d.page_content for d in docs])
 
-if len(context.strip()) == 0:
-    response = "No dispongo de información suficiente en la documentación provista para responder esta pregunta."
-else:
-    # Creamos el prompt que une el contexto del PDF y la pregunta del usuario
-    input_text = f"Utiliza exclusivamente el siguiente contexto técnico para responder a la pregunta de manera clara y profesional.\n\nContexto:\n{context}\n\nPregunta: {prompt}\nRespuesta:"
-    # Invocamos al modelo LLM (si es un ChatModel, usa .content; si es un LLM tradicional, devuelto como texto plano)
-    raw_response = llm.invoke(input_text)
-    response = raw_response.content if hasattr(raw_response, "content") else str(raw_response)
+        if len(context.strip()) == 0:
+            response = "No dispongo de información suficiente en la documentación provista para responder esta pregunta."
+        else:
+            input_text = f"Utiliza exclusivamente el siguiente contexto técnico para responder a la pregunta de manera clara y profesional.\n\nContexto:\n{context}\n\nPregunta: {prompt}\nRespuesta:"
+            raw_response = llm.invoke(input_text)
+            response = raw_response.content if hasattr(raw_response, "content") else str(raw_response)
 
-st.markdown(response)
-st.session_state.messages.append({"role": "assistant", "content": response})
+        st.markdown(response)
