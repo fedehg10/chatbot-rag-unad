@@ -18,19 +18,17 @@ CONFIG = {
 # --- 2. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Asistente Técnico de Datos", page_icon="🤖", layout="centered")
 
-# --- 3. INICIALIZACIÓN DEL SISTEMA RAG (CON CACHÉ) ---
+# --- 3. INICIALIZACIÓN DEL SISTEMA RAG (CON CACHÉ RENOVADA) ---
 @st.cache_resource
-def init_rag_system():
-    # Inicializamos el modelo de lenguaje
+def init_rag_system_v3():
+    # Inicializamos el endpoint con Mistral directamente
     llm = HuggingFaceEndpoint(
         repo_id=CONFIG["model_name"],
-        task="text-generation",
         max_new_tokens=CONFIG["max_tokens"],
         temperature=CONFIG["temperature"],
         huggingfacehub_api_token=st.secrets["HUGGINGFACEHUB_API_TOKEN"]
     )
-
-    llm = ChatHuggingFace(llm=llm_endpoint)
+    
     # Carga y segmentación del documento PDF
     if os.path.exists(CONFIG["pdf_path"]):
         loader = PyPDFLoader(CONFIG["pdf_path"])
@@ -47,9 +45,9 @@ def init_rag_system():
         
     return llm, retriever
 
-# Cargamos el sistema
+# Cargamos el sistema de forma segura
 try:
-    llm, retriever = init_rag_system()
+    llm, retriever = init_rag_system_v3()
 except Exception as e:
     st.error(f"Error al inicializar el sistema RAG: {e}")
     llm, retriever = None, None
@@ -71,7 +69,7 @@ st.sidebar.markdown("- ¿Cuáles son los comandos básicos para ejecutar un proy
 st.markdown("### Asistente Técnico RAG - Ingeniería de Datos")
 st.markdown("Pregúntame sobre configuración, buenas prácticas o resolución de errores en herramientas open-source.")
 
-# Capturamos la entrada del usuario de forma limpia abajo del todo
+# Capturamos la entrada del usuario
 prompt = st.chat_input("Escribe tu duda técnica aquí...")
 
 if prompt:
