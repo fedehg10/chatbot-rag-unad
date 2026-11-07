@@ -54,6 +54,7 @@ st.sidebar.markdown("- ¿Cómo configuro un DAG básico en Airflow?")
 st.sidebar.markdown("- ¿Cuáles son los comandos básicos para ejecutar un proyecto en dbt?")
 
 # --- 5. INTERFAZ PRINCIPAL Y CHAT ---
+# --- 5. INTERFAZ PRINCIPAL Y CHAT ---
 st.markdown("### Asistente Técnico RAG - Ingeniería de Datos")
 st.markdown("Pregúntame sobre configuración, buenas prácticas o resolución de errores en herramientas open-source.")
 
@@ -74,8 +75,13 @@ if prompt:
                 # Buscamos fragmentos relevantes en el PDF usando la base vectorial local
                 docs = retriever.invoke(prompt)
                 
-                if not docs or len(docs) == 0:
-                    response = "No dispongo de información suficiente en la documentación provista para responder esta pregunta."
+                # VALIDACIÓN SENCILLA: Si la pregunta no guarda relación técnica evidente, 
+                # evitamos forzar textos aleatorios de Airflow/dbt.
+                palabras_clave_permitidas = ["airflow", "dbt", "dag", "task", "sql", "config", "comando", "error", "proyecto", "init", "run", "debug", "python", "base", "datos"]
+                tiene_relacion = any(palabra in prompt.lower() for palabra in palabras_clave_permitidas)
+                
+                if not docs or len(docs) == 0 or (not tiene_relacion and len(prompt.split()) > 3):
+                    response = "Lo siento, no dispongo de información sobre ese tema en la documentación técnica oficial de Airflow y dbt cargada en el sistema."
                 else:
                     # Construimos la respuesta formal extrayendo y sintetizando el contenido técnico encontrado
                     context_text = "\n\n---\n\n".join([d.page_content for d in docs])
