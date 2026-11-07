@@ -8,7 +8,7 @@ from langchain_huggingface import HuggingFaceEndpoint
 
 # --- 1. CONFIGURACIÓN CENTRALIZADA ---
 CONFIG = {
-    "model_name": "Qwen/Qwen2.5-7B-Instruct",
+    "model_name": "mistralai/Mistral-7B-Instruct-v0.2",
     "temperature": 0.1,
     "max_tokens": 512,
     "retrieval_k": 3,
