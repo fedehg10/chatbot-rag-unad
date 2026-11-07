@@ -29,7 +29,8 @@ def init_rag_system():
         temperature=CONFIG["temperature"],
         huggingfacehub_api_token=st.secrets["HUGGINGFACEHUB_API_TOKEN"]
     )
-    
+
+    llm = ChatHuggingFace(llm=llm_endpoint)
     # Carga y segmentación del documento PDF
     if os.path.exists(CONFIG["pdf_path"]):
         loader = PyPDFLoader(CONFIG["pdf_path"])
