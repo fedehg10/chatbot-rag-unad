@@ -20,10 +20,11 @@ st.set_page_config(page_title="Asistente Técnico de Datos", page_icon="🤖", l
 
 # --- 3. INICIALIZACIÓN DEL SISTEMA RAG ---
 @st.cache_resource
-def init_rag_system_final():
-    # Inicializamos el endpoint con un modelo moderno y totalmente soportado
+def init_rag_system_v6():
+    # Inicializamos el endpoint especificando task="conversational" que exige el proveedor actual
     llm = HuggingFaceEndpoint(
         repo_id=CONFIG["model_name"],
+        task="conversational",
         max_new_tokens=CONFIG["max_tokens"],
         temperature=CONFIG["temperature"],
         huggingfacehub_api_token=st.secrets["HUGGINGFACEHUB_API_TOKEN"]
@@ -47,7 +48,7 @@ def init_rag_system_final():
 
 # Cargamos el sistema de forma segura
 try:
-    llm, retriever = init_rag_system_final()
+    llm, retriever = init_rag_system_v6()
 except Exception as e:
     st.error(f"Error al inicializar el sistema RAG: {e}")
     llm, retriever = None, None
