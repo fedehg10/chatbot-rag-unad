@@ -4,7 +4,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEndpoint
+from huggingface_hub import InferenceClient
 
 # --- 1. CONFIGURACIÓN CENTRALIZADA ---
 CONFIG = {
@@ -20,14 +20,11 @@ st.set_page_config(page_title="Asistente Técnico de Datos", page_icon="🤖", l
 
 # --- 3. INICIALIZACIÓN DEL SISTEMA RAG ---
 @st.cache_resource
-def init_rag_system_v6():
-    # Inicializamos el endpoint especificando task="conversational" que exige el proveedor actual
-    llm = HuggingFaceEndpoint(
-        repo_id=CONFIG["model_name"],
-        task="conversational",
-        max_new_tokens=CONFIG["max_tokens"],
-        temperature=CONFIG["temperature"],
-        huggingfacehub_api_token=st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+def init_rag_system_bulletproof():
+    # Cliente oficial directo y compatible con el proveedor de chat
+    client = InferenceClient(
+        model=CONFIG["model_name"],
+        token=st.secrets["HUGGINGFACEHUB_API_TOKEN"]
     )
     
     # Carga y segmentación del documento PDF
@@ -44,14 +41,14 @@ def init_rag_system_v6():
     else:
         retriever = None
         
-    return llm, retriever
+    return client, retriever
 
 # Cargamos el sistema de forma segura
 try:
-    llm, retriever = init_rag_system_v6()
+    client, retriever = init_rag_system_bulletproof()
 except Exception as e:
     st.error(f"Error al inicializar el sistema RAG: {e}")
-    llm, retriever = None, None
+    client, retriever = None, None
 
 # --- 4. BARRA LATERAL (INTERFAZ) ---
 st.sidebar.title("⚙️ Configuración y Ayuda")
@@ -80,7 +77,7 @@ if prompt:
 
     # Generamos y mostramos la respuesta del asistente
     with st.chat_message("assistant"):
-        if retriever is None or llm is None:
+        if retriever is None or client is None:
             response = "Error: El sistema no se ha inicializado correctamente. Revisa los secretos o el archivo PDF."
         else:
             try:
@@ -92,8 +89,14 @@ if prompt:
                     response = "No dispongo de información suficiente en la documentación provista para responder esta pregunta."
                 else:
                     input_text = f"Utiliza exclusivamente el siguiente contexto técnico para responder a la pregunta de manera clara y profesional.\n\nContexto:\n{context}\n\nPregunta: {prompt}\nRespuesta:"
-                    raw_response = llm.invoke(input_text)
-                    response = raw_response.content if hasattr(raw_response, "content") else str(raw_response)
+                    
+                    # Petición nativa de chat compatible con el enrutador
+                    completion = client.chat_completion(
+                        messages=[{"role": "user", "content": input_text}],
+                        max_tokens=CONFIG["max_tokens"],
+                        temperature=CONFIG["temperature"]
+                    )
+                    response = completion.choices[0].message.content
             except Exception as e:
                 response = f"Ocurrió un error al procesar la consulta con el modelo: {e}"
 
