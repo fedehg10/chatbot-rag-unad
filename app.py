@@ -18,12 +18,13 @@ CONFIG = {
 # --- 2. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Asistente Técnico de Datos", page_icon="🤖", layout="centered")
 
-# --- 3. INICIALIZACIÓN DEL SISTEMA RAG (CON CACHÉ RENOVADA) ---
+# --- 3. INICIALIZACIÓN DEL SISTEMA RAG (CON CACHÉ RENOVADA V4) ---
 @st.cache_resource
-def init_rag_system_v3():
-    # Inicializamos el endpoint con Mistral directamente
+def init_rag_system_v4():
+    # Inicializamos el endpoint especificando task="conversational" que exige el proveedor
     llm = HuggingFaceEndpoint(
         repo_id=CONFIG["model_name"],
+        task="conversational",
         max_new_tokens=CONFIG["max_tokens"],
         temperature=CONFIG["temperature"],
         huggingfacehub_api_token=st.secrets["HUGGINGFACEHUB_API_TOKEN"]
@@ -47,7 +48,7 @@ def init_rag_system_v3():
 
 # Cargamos el sistema de forma segura
 try:
-    llm, retriever = init_rag_system_v3()
+    llm, retriever = init_rag_system_v4()
 except Exception as e:
     st.error(f"Error al inicializar el sistema RAG: {e}")
     llm, retriever = None, None
