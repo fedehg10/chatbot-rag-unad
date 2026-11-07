@@ -74,7 +74,6 @@ if len(context.strip()) == 0:
 else:
     # Creamos el prompt que une el contexto del PDF y la pregunta del usuario
     input_text = f"Utiliza exclusivamente el siguiente contexto técnico para responder a la pregunta de manera clara y profesional.\n\nContexto:\n{context}\n\nPregunta: {prompt}\nRespuesta:"
-    
     # Invocamos al modelo LLM (si es un ChatModel, usa .content; si es un LLM tradicional, devuelto como texto plano)
     raw_response = llm.invoke(input_text)
     response = raw_response.content if hasattr(raw_response, "content") else str(raw_response)
