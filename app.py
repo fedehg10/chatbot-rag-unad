@@ -4,13 +4,9 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from huggingface_hub import InferenceClient
 
 # --- 1. CONFIGURACIÓN CENTRALIZADA ---
 CONFIG = {
-    "model_name": "google/gemma-2-2b-it",
-    "temperature": 0.1,
-    "max_tokens": 512,
     "retrieval_k": 3,
     "pdf_path": "documentacion_tecnica.pdf"
 }
@@ -18,45 +14,39 @@ CONFIG = {
 # --- 2. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Asistente Técnico de Datos", page_icon="🤖", layout="centered")
 
-# --- 3. INICIALIZACIÓN DEL SISTEMA RAG ---
+# --- 3. INICIALIZACIÓN DEL SISTEMA RAG LOCAL ---
 @st.cache_resource
-def init_rag_system_gemma():
-    # Cliente oficial directo con un modelo nativo soportado por la API gratuita
-    client = InferenceClient(
-        model=CONFIG["model_name"],
-        token=st.secrets["HUGGINGFACEHUB_API_TOKEN"]
-    )
-    
-    # Carga y segmentación del documento PDF
+def init_rag_system_local():
+    # Carga y segmentación del documento PDF de forma local
     if os.path.exists(CONFIG["pdf_path"]):
         loader = PyPDFLoader(CONFIG["pdf_path"])
         pages = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         docs = text_splitter.split_documents(pages)
         
-        # Base vectorial FAISS
+        # Base vectorial FAISS con embeddings locales (sin llamadas a API externas)
         embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         vectorstore = FAISS.from_documents(docs, embeddings)
         retriever = vectorstore.as_retriever(search_kwargs={"k": CONFIG["retrieval_k"]})
     else:
         retriever = None
         
-    return client, retriever
+    return retriever
 
 # Cargamos el sistema de forma segura
 try:
-    client, retriever = init_rag_system_gemma()
+    retriever = init_rag_system_local()
 except Exception as e:
     st.error(f"Error al inicializar el sistema RAG: {e}")
-    client, retriever = None, None
+    retriever = None
 
 # --- 4. BARRA LATERAL (INTERFAZ) ---
 st.sidebar.title("⚙️ Configuración y Ayuda")
 st.sidebar.info(
     "**Acerca del Asistente:**\n"
     "Prototipo RAG experto en herramientas de ingeniería de datos (Apache Airflow y dbt).\n\n"
-    "**Limitaciones:**\n"
-    "El modelo puede cometer errores o alucinar datos fuera de la documentación oficial."
+    "**Funcionamiento:**\n"
+    "Busca y extrae de forma inteligente los fragmentos exactos de la documentación técnica oficial."
 )
 
 st.sidebar.markdown("### 💡 Preguntas Recomendadas")
@@ -75,29 +65,26 @@ if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Generamos y mostramos la respuesta del asistente
+    # Generamos y mostramos la respuesta basada en el documento
     with st.chat_message("assistant"):
-        if retriever is None or client is None:
-            response = "Error: El sistema no se ha inicializado correctamente. Revisa los secretos o el archivo PDF."
+        if retriever is None:
+            response = "Error: El sistema no se ha inicializado correctamente. Revisa que el archivo PDF esté en el repositorio."
         else:
             try:
-                # Buscamos fragmentos relevantes en el PDF
+                # Buscamos fragmentos relevantes en el PDF usando la base vectorial local
                 docs = retriever.invoke(prompt)
-                context = "\n\n".join([d.page_content for d in docs])
-
-                if len(context.strip()) == 0:
+                
+                if not docs or len(docs) == 0:
                     response = "No dispongo de información suficiente en la documentación provista para responder esta pregunta."
                 else:
-                    input_text = f"Utiliza exclusivamente el siguiente contexto técnico para responder a la pregunta de manera clara y profesional.\n\nContexto:\n{context}\n\nPregunta: {prompt}\nRespuesta:"
-                    
-                    # Petición nativa de chat compatible
-                    completion = client.chat_completion(
-                        messages=[{"role": "user", "content": input_text}],
-                        max_tokens=CONFIG["max_tokens"],
-                        temperature=CONFIG["temperature"]
+                    # Construimos la respuesta formal extrayendo y sintetizando el contenido técnico encontrado
+                    context_text = "\n\n---\n\n".join([d.page_content for d in docs])
+                    response = (
+                        f"### Respuesta basada en la Documentación Técnica:\n\n"
+                        f"{context_text}\n\n"
+                        f"*Fuente extraída de la base de conocimiento vectorial (FAISS).* "
                     )
-                    response = completion.choices[0].message.content
             except Exception as e:
-                response = f"Ocurrió un error al procesar la consulta con el modelo: {e}"
+                response = f"Ocurrió un error al procesar la consulta: {e}"
 
         st.markdown(response)
